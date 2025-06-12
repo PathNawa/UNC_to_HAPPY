@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --job-name=prob_matrix_job
+#SBATCH --output=prob_matrix_%j.out   # %j = job ID
+#SBATCH --error=prob_matrix_%j.err
+#SBATCH --ntasks=1
+#SBATCH --time=20:00:00               # adjust as needed
+#SBATCH --mem=8G                      # adjust memory as needed
+#SBATCH --mail-type=END,FAIL          # email notifications
+#SBATCH --mail-user=prnpq9@mst.edu  
+
+# Load R module (or use module avail to check version)
+module load R
+
+# Run your R script
+Rscript Founder_Prob_to_fit_for_Keele_HPC.R

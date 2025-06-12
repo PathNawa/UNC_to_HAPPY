@@ -47,3 +47,44 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.so
+*.ipynb_checkpoints
+*.egg-info/
+.env
+.venv/
+venv/
+ENV/
+env/
+*.log
+
+# === Jupyter Notebooks (optional)
+*.ipynb
+
+# === IDE/Editor files ===
+.vscode/
+.idea/
+*.swp
+*.bak
+*.tmp
+
+# === Output files ===
+*.html
+*.pdf
+*.out
+*.aux
+*.toc
+*.log
+*.gz
+
+# === Data (optional - if large or sensitive) ===
+data/
+*.csv
+*.tsv
+*.rds
+*.rda
+*.xlsx
+

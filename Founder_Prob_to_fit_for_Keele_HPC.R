@@ -168,6 +168,7 @@ sup_files <- lapply(seq_len(no_chr), function(i) {
   )
 })
 
+
 # function to assign values to bp, chromosome, map, markers, strains, subjects for each chromosome and save them 
 save_sup_files  <- function(dir_path = dir) {
   names(sup_files)= set_chr
@@ -196,7 +197,7 @@ save_sup_files  <- function(dir_path = dir) {
     
     cat(paste0("................Saving files for chr", i,"................"), "\n")
     
-    for (folder in c("additive","full","geneotype")) {
+    for (folder in c("additive","full","genotype")) {
       
       dir_path1 <- paste0(dir_path, "/Genotype/",folder,"/chr",i,"/")
       

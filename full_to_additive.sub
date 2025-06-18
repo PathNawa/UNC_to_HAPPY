@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --job-name=full_to_additive_job
+#SBATCH --output=full_to_additive_%j.out   # %j = job ID
+#SBATCH --error=full_to_additive_%j.err
+#SBATCH --ntasks=1
+#SBATCH --time=5:00:00               # adjust as needed
+#SBATCH --mem=8G                      # adjust memory as needed
+#SBATCH --mail-type=END,FAIL          # email notifications
+#SBATCH --mail-user=prnpq9@mst.edu  
+
+# Load R module (or use module avail to check version)
+module load R
+
+# Run your R script
+Rscript full_to_additive_HPC.R

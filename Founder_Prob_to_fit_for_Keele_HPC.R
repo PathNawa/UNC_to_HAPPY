@@ -1,7 +1,7 @@
 library(dplyr)
 
 #path for the directory of probability Matrix from UNC website
-#dir_path <- "/Users/pathumnawarathna/Documents/Research/Simulation/keele/Probability_matrices_from_UNC"  
+#dir_path <- "/Users/pathumnawarathna/Documents/Research/Simulation/keele/Probability_matrices_from_UNC/test for bug"  
 dir_path <- "."
 
 #vector of diploid allele combinations 36 
@@ -31,7 +31,7 @@ map_file <- map_file %>% rename("chromosome" = "chr", "position(B38)" = "pos")
 #recode chr name 
 map_file <- map_file %>%
   mutate(chromosome = recode(chromosome,
-                              "chr1" = "1","chr2" = "2","chr3" = "3", "chr4" = "4",
+                             "chr1" = "1","chr2" = "2","chr3" = "3", "chr4" = "4",
                              "chr5" = "5","chr6" = "6","chr7" = "7", "chr8" = "8",
                              "chr9" = "9","chr10" = "10","chr11" = "11","chr12" = "12", 
                              "chr13" = "13","chr14" = "14","chr15" = "15","chr16" = "16",
@@ -88,6 +88,15 @@ for(i in 1:length(adj_map_file$marker)){
   prob_by_markers[[i]]$chr <- adj_map_file[i,"chromosome"]
 }
 
+# Function to add a string if it doesn't exist already
+add_unique_strings <- function(new_strings, string_vector) {
+  # Filter only those new_strings that are not in the current vector
+  unique_to_add <- new_strings[!(new_strings %in% string_vector)]
+  
+  string_vector <- c(string_vector, unique_to_add)
+  return(string_vector)
+}
+
 
 CC_lines <- c()
 for(i in 1:length(lines)){
@@ -99,6 +108,9 @@ for(i in 1:length(lines)){
   }
   CC_lines[i] <- pt
 }
+
+removed_lines <- character(0)
+removed_markers <- character(0)
 
 row_count = 1
 for (pattern in CC_lines) {
@@ -117,7 +129,7 @@ for (pattern in CC_lines) {
   CC <- remove_rep_and_Mit(raw_CC)
   
   common_markers <- intersect(CC$marker,adj_map_file$marker)
-
+  
   CC <- CC[CC$marker %in% common_markers,]
   
   #check the order of markers of the loaded files match with markers in Marker file 
@@ -125,35 +137,61 @@ for (pattern in CC_lines) {
   #   stop(paste("markers",setdiff(adj_map_file$marker,CC$marker),"missing in", pattern, "file"))
   # }
   
-  
-  #check founder allele names same and in same order as input founder names after modifying column names temporarily
-  #such that there is a . in between the two founders
-  temp_names <- colnames(CC)[4:ncol((CC))]
-  expected_cols <- unname(sapply(temp_names,function(x){
-    paste0(substr(x,1,1),".",substr(x,2,2))
-  }))
-  
-  
-  if (!identical(founder_names, expected_cols)) {
-    stop(paste("Founder names do not match the column names in",pattern,"file"))
-  }
-  
-  #assign probabilities to each matrix corresponding to maker by CC lines
-  for (j in CC$marker) {
-   
-    prob_by_markers[[j]]$matrix_data[row_count,] <- as.numeric(CC[CC$marker == j,4:ncol(CC)])
-    rownames(prob_by_markers[[j]]$matrix_data)[row_count] <- pattern
+  row_sum <- rowSums(CC[,4:ncol(CC)])
+  if(all(row_sum==0) | sum(row_sum==0)>10){
+    print(paste(pattern,"is removed becouse the file has zero probabilities for all the founder combinations"))
+    removed_lines <- add_unique_strings(pattern,removed_lines)
+  }else{
+    if(any(row_sum==0)){
+      removed_markers_temp <- CC$marker[which(row_sum==0)]
+      removed_markers <- add_unique_strings(removed_markers_temp,removed_markers)
+    }
+    
+    #check founder allele names same and in same order as input founder names after modifying column names temporarily
+    #such that there is a . in between the two founders
+    temp_names <- colnames(CC)[4:ncol((CC))]
+    expected_cols <- unname(sapply(temp_names,function(x){
+      paste0(substr(x,1,1),".",substr(x,2,2))
+    }))
+    
+    
+    if (!identical(founder_names, expected_cols)) {
+      stop(paste("Founder names do not match the column names in",pattern,"file"))
+    }
+    
+    #assign probabilities to each matrix corresponding to maker by CC lines
+    for (j in CC$marker) {
+      
+      prob_by_markers[[j]]$matrix_data[row_count,] <- as.numeric(CC[CC$marker == j,4:ncol(CC)])
+      rownames(prob_by_markers[[j]]$matrix_data)[row_count] <- pattern
+      
+    }
+    row_count = row_count +1
     
   }
-  row_count = row_count +1
+  
 }
-
 #select the entries in prob_by_markers file corresponding to markers common to both map file and cc probability files 
 prob_by_markers <- prob_by_markers[names(prob_by_markers) %in% common_markers]
+
+#remove the set of markers whose probabilities doesn't sum up to 1 from prob_by_markers
+prob_by_markers <- prob_by_markers[!names(prob_by_markers) %in% removed_markers]
+
+CC_lines_updated <- CC_lines[!CC_lines %in% removed_lines]
+
+prob_by_markers <- lapply(prob_by_markers,function(x){
+  temp_mat <- x$matrix_data
+  temp_mat <- temp_mat[c(1:length(CC_lines_updated)),]
+  x$matrix_data<- temp_mat
+  return(x)
+})
+
 
 #update adj_mapfile to include only the common makers 
 adj_map_file <- adj_map_file[adj_map_file$marker %in% common_markers,]
 
+#remove the set of markers whose probabilities doesn't sum up to 1 from adj_map_file
+adj_map_file <- adj_map_file[!adj_map_file$marker %in% removed_markers,]
 
 #create list to store bp, chromosome, map, markers, strains, subjects file 
 no_chr <- length(set_chr)
@@ -164,10 +202,11 @@ sup_files <- lapply(seq_len(no_chr), function(i) {
     map = numeric(),
     markers = character(),
     strains = c("A", "B" ,"C" ,"D" ,"E" ,"F" ,"G" ,"H"),
-    subjects = CC_lines
+    subjects = CC_lines_updated
   )
 })
 
+save(adj_map_file,file = paste0(dir_path,"/adj_map_file.RData"))
 
 # function to assign values to bp, chromosome, map, markers, strains, subjects for each chromosome and save them 
 save_sup_files  <- function(dir_path = dir) {
@@ -295,3 +334,6 @@ prob_by_markers_updated <- lapply(prob_by_markers,function(x){
 save_sup_files(paste0(dir_path,"/updated_Genotype"))
 save_prob_files(prob_by_markers_updated, paste0(dir_path,"/updated_Genotype"))
 
+print("##########################SUMMARY###############################")
+print(removed_markers)
+print(removed_lines)

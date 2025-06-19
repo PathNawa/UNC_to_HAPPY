@@ -2,7 +2,7 @@
 #data_dir <- "/Users/pathumnawarathna/Documents/Research/Simulation/keele/Probability_matrices_from_UNC/Genotype"
 set_chr <- c(1:19,"X")
 
-ccreate_additve_data <- function(data_dir, set_chr){
+create_additve_data <- function(data_dir, set_chr){
   options(digits = 15)
   full_dir <- paste0(data_dir,"/full")
   
